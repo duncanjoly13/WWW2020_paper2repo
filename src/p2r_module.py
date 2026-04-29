@@ -74,7 +74,8 @@ class P2rSystem(LightningModule):
     def test_step(self, batch, batch_nb):
         loss, metrics = self.__one_step(batch, batch_nb)
         ret = OrderedDict([('test_loss', loss)] + list(metrics))
-        return ret
+        self.log_dict(ret)
+        return ret 
     
     def test_end(self, outputs):
         avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
