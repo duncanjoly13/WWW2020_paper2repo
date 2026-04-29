@@ -88,7 +88,7 @@ def loadData(data_root, train_div):
 if __name__ == '__main__':
 
     # use default args given by lightning
-    root_dir = os.path.dirname(os.path.realpath(sys.modules['__main__'].__file__))
+    root_dir = os.path.dirname('/content')
     parent_parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
     parent_parser.add_argument('--root_dir', default=root_dir, type=str)
     parent_parser.add_argument('--exp_name', default='p2r_experiment', type=str)
