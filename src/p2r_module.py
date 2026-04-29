@@ -4,6 +4,7 @@ import itertools
 import random
 from collections import OrderedDict
 
+import torch.nn.functional as F
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -56,6 +57,7 @@ class P2rSystem(LightningModule):
         
         self.__build_dataset()
         self.__build_model()
+        self.test_step_outputs = []
         
     def __build_model(self):
         self.p2r = P2r(self.hparams, self.data)
@@ -115,21 +117,78 @@ class P2rSystem(LightningModule):
         return ret
     
     def test_step(self, batch, batch_nb):
+        # run the standard metric logic from the paper
         loss, metrics = self.__one_step(batch, batch_nb)
-        ret = OrderedDict([('test_loss', loss)] + list(metrics))
-        self.log_dict(ret)
-        return ret 
+        
+        # get scores manually for Catalog Coverage
+        paper_index, repo_indices, neg_split = batch
+        _, scores, ranks = self.forward(paper_index, repo_indices)
+        
+        # get Top-10 recommendations for coverage
+        _, top_k_indices = torch.topk(scores, k=10, dim=-1)
+        
+        output = {
+            'test_loss': loss,
+            'metrics': dict(metrics),
+            'indices': top_k_indices.detach().cpu()
+        }
+        self.test_step_outputs.append(output)
+        return output
     
     def test_end(self, outputs):
+        # flatten all recommended indices from all batches into one set
+        all_recommended_repos = torch.cat([x['recommended_indices'] for x in outputs])
+        unique_recommended_count = len(torch.unique(all_recommended_repos))
+        
+        # total catalog size
+        total_repo_catalog_size = 7516
+        
+        catalog_coverage = unique_recommended_count / total_repo_catalog_size
+        
+        # standard averaging for other metrics
         avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        vals = list(itertools.chain(*[ \
-            [('test_avg_{0:s}@{1:d}'.format(metric, k), \
-                    torch.stack([x['{0:s}@{1:d}'.format(metric, k)] for x in outputs]).mean()) \
-                for k in [5, 10, 15, 20]] \
-            for metric in ['MAP', 'MRR', 'ACC', 'PMAP', 'ILD'] \
-        ]))
-        ret = OrderedDict([('avg_test_loss', avg_loss)] + vals)
-        return ret
+        
+        # create the results dictionary
+        results = OrderedDict([
+            ('avg_test_loss', avg_loss),
+            ('catalog_coverage', torch.tensor(catalog_coverage))
+        ])
+        
+        # add existing metrics
+        for metric_name, val in outputs[0]['metrics']:
+            avg_val = torch.stack([dict(x['metrics'])[metric_name] for x in outputs]).mean()
+            results[f'avg_{metric_name}'] = avg_val
+            
+        print(f"\nFinal Catalog Coverage: {catalog_coverage * 100:.2f}%")
+        return results
+
+    def on_test_epoch_end(self):
+        if not self.test_step_outputs:
+            return
+
+        # aggregate Coverage
+        all_indices = torch.cat([x['indices'] for x in self.test_step_outputs])
+        unique_repos = torch.unique(all_indices)
+        coverage = len(unique_repos) / 7516
+        
+        avg_metrics = {}
+        metric_keys = self.test_step_outputs[0]['metrics'].keys()
+        
+        for key in metric_keys:
+            avg_val = torch.stack([x['metrics'][key] for x in self.test_step_outputs]).mean()
+            avg_metrics[f'avg_{key}'] = avg_val
+            self.log(f'avg_{key}', avg_val)
+
+        self.log('test_catalog_coverage', torch.tensor(coverage))
+        
+        print(f"\n" + "="*30)
+        print(f"BASELINE COMPARISON (WWW '20)")
+        print(f"Catalog Coverage: {coverage * 100:.2f}%")
+        print(f"MRR@10: {avg_metrics.get('avg_MRR@10', 0):.4f} (Target: ~0.460)")
+        print(f"ILD@10: {avg_metrics.get('avg_ILD@10', 0):.4f}")
+        print("="*30 + "\n")
+        
+        self.test_step_outputs.clear()
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
