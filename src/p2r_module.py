@@ -18,9 +18,8 @@ class P2rSystem(LightningModule):
     def __init__(self, hparams, data):
         super(P2rSystem, self).__init__()
         
-        self.hparams = hparams
+        self.save_hyperparameters(hparams)
         self.data = data
-        self.device = hparams.device
         print(self.device)
         
         self.__build_dataset()
