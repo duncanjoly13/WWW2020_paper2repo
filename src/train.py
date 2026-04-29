@@ -30,20 +30,16 @@ def main(hparams, data):
     model = P2rSystem(hparams, data)
 
     model_save_path = '{}/{}/version_{}/checkpoints'.format(exp.save_dir, exp.name, exp.version)
-    checkpoint = ModelCheckpoint(filepath=model_save_path, verbose=True, monitor='tng_loss', mode='min', save_best_only=True)
+    checkpoint = ModelCheckpoint(dirpath=model_save_path, verbose=True, monitor='tng_loss', mode='min', save_top_k=1)
 
     # configure trainer
     trainer = Trainer(
-        experiment = exp,
-        checkpoint_callback = checkpoint,
-        min_nb_epochs = 1,
-        max_nb_epochs = hparams.max_nb_epochs,
-        track_grad_norm = 2,
+        callbacks = [checkpoint],
+        min_epochs = 1,
+        max_epochs = hparams.max_nb_epochs,
         accumulate_grad_batches=1,
-        row_log_interval=1,
-        amp_level='O2',
-        use_amp=True,
-        gpus=1
+        log_every_n_steps = 1,
+        accelerator = 'auto'
     )
 
     # train model
