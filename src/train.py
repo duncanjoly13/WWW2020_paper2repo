@@ -48,7 +48,6 @@ def main(hparams, data):
     trainer.test()
     
     filepath = '{}/_ckpt_epoch_final.ckpt'.format(model_save_path)
-    checkpoint.save_model(filepath, False)
 
 def loadData(data_root, train_div):
     with open('%s/ind.paper-repo.data' % data_root, 'rb') as f:
