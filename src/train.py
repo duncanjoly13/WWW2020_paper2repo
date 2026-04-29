@@ -34,6 +34,7 @@ def main(hparams, data):
 
     # configure trainer
     trainer = Trainer(
+        logger = False,
         callbacks = [checkpoint],
         min_epochs = 1,
         max_epochs = hparams.max_nb_epochs,
