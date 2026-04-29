@@ -68,6 +68,7 @@ class P2rSystem(LightningModule):
     def training_step(self, batch, batch_nb):
         loss_val, metrics = self.__one_step(batch, batch_nb)
         ret = OrderedDict([('loss', loss_val), ('progress', OrderedDict([('tng_loss', loss_val)] + metrics))])
+        self.log('tng_loss', loss_val)
         return ret
     
     def test_step(self, batch, batch_nb):
