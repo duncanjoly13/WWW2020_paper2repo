@@ -7,7 +7,7 @@ from collections import OrderedDict
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from pytorch_lightning import data_loader, LightningModule
+from pytorch_lightning import LightningModule
 from test_tube import Experiment, HyperOptArgumentParser
 
 from models import P2r
@@ -94,11 +94,9 @@ class P2rSystem(LightningModule):
         # scheduler = scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
         return optimizer #], [scheduler]
 
-    @data_loader
     def train_dataloader(self):
         return self.p2r_train_loader
-
-    @data_loader
+        
     def test_dataloader(self):
         return self.p2r_test_loader
     
