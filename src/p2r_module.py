@@ -18,7 +18,7 @@ class P2rSystem(LightningModule):
     def __init__(self, hparams, data):
         super(P2rSystem, self).__init__()
         
-        self.save_hyperparameters(hparams)
+        self.save_hyperparameters(vars(hparams))
         self.data = data
         print(self.device)
         
@@ -67,8 +67,6 @@ class P2rSystem(LightningModule):
     
     def training_step(self, batch, batch_nb):
         loss_val, metrics = self.__one_step(batch, batch_nb)
-        if self.trainer.use_dp:
-            loss_val = loss_val.unsqueeze(0)
         ret = OrderedDict([('loss', loss_val), ('progress', OrderedDict([('tng_loss', loss_val)] + metrics))])
         return ret
     
