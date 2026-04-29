@@ -45,7 +45,7 @@ def main(hparams, data):
 
     # train model
     trainer.fit(model)
-    trainer.test()
+    print(trainer.test())
     
     filepath = '{}/_ckpt_epoch_final.ckpt'.format(model_save_path)
 
