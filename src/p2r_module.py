@@ -14,6 +14,38 @@ from models import P2r
 from metrics import warpLoss, metricMAP, metricMRR, metricAccuracy, metricPMAP
 from dataset import P2rTrainDataset, P2rTestDataset
 
+def calculate_ild(item_embeddings):
+    """
+    Calculate Intra-List Diversity for a batch of recommendation lists
+    :param item_embeddings: tensor of shape (batch_size, top_k, embedding_dim)
+    :return: average ILD across the batch
+    """
+    # ensure item_embeddings is a 3D tensor: (batch_size, top_k, embedding_dim)
+    if item_embeddings.dim() == 2:
+        item_embeddings = item_embeddings.unsqueeze(0)
+    
+    batch_size, k, embed_dim = item_embeddings.size()
+    
+    if k <= 1:
+        return torch.tensor(0.0, device=item_embeddings.device)
+        
+    # L2 normalize embeddings to compute cosine similarity via dot product
+    norm_emb = F.normalize(item_embeddings, p=2, dim=-1)
+    
+    # compute cosine similarity matrix: (batch_size, top_k, top_k)
+    sim_matrix = torch.bmm(norm_emb, norm_emb.transpose(1, 2))
+    
+    # convert similarity to distance
+    dist_matrix = 1.0 - sim_matrix
+    
+    # sum all distances in the matrix
+    sum_dist = dist_matrix.sum(dim=(1, 2))
+    
+    # average over the k*(k-1) off-diagonal pairs
+    ild_per_list = sum_dist / (k * (k - 1))
+    
+    return ild_per_list.mean()
+
 class P2rSystem(LightningModule):
     def __init__(self, hparams, data):
         super(P2rSystem, self).__init__()
@@ -59,11 +91,22 @@ class P2rSystem(LightningModule):
         paper_index, repo_indices, neg_split = batch
         constraint, scores, ranks = self.forward(paper_index, repo_indices)
         loss = self.loss(scores, neg_split, self.hparams.warploss_margin, constraint)
+
+        ild_metrics = []
+
+        for k in [5, 10, 15, 20]:
+            _, top_k_indices = torch.topk(scores, k=k, dim=-1)
+            top_k_embeddings = self.p2r.repoModel(top_k_indices)
+            if isinstance(top_k_embeddings, tuple):
+                top_k_embeddings = top_k_embeddings[0]
+            ild_val = calculate_ild(top_k_embeddings)
+            ild_metrics.append(('ILD@%d' % k, ild_val))
+        
         m_maps = [('MAP@%d' % k, torch.tensor(metricMAP(ranks, neg_split, k))) for k in [5, 10, 15, 20]]
         m_mrrs = [('MRR@%d' % k, torch.tensor(metricMRR(ranks, neg_split, k))) for k in [5, 10, 15, 20]]
         m_accs = [('ACC@%d' % k, torch.tensor(metricAccuracy(ranks, neg_split, k))) for k in [5, 10, 15, 20]]
         m_pmaps = [('PMAP@%d' % k, torch.tensor(metricPMAP(ranks, neg_split, k))) for k in [5, 10, 15, 20]]
-        return loss, list(itertools.chain(*[m_maps, m_mrrs, m_accs, m_pmaps]))
+        return loss, list(itertools.chain(*[m_maps, m_mrrs, m_accs, m_pmaps, ild_metrics]))
     
     def training_step(self, batch, batch_nb):
         loss_val, metrics = self.__one_step(batch, batch_nb)
@@ -83,7 +126,7 @@ class P2rSystem(LightningModule):
             [('test_avg_{0:s}@{1:d}'.format(metric, k), \
                     torch.stack([x['{0:s}@{1:d}'.format(metric, k)] for x in outputs]).mean()) \
                 for k in [5, 10, 15, 20]] \
-            for metric in ['MAP', 'MRR', 'ACC', 'PMAP'] \
+            for metric in ['MAP', 'MRR', 'ACC', 'PMAP', 'ILD'] \
         ]))
         ret = OrderedDict([('avg_test_loss', avg_loss)] + vals)
         return ret
