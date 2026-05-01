@@ -92,6 +92,8 @@ if __name__ == '__main__':
     # allow model to overwrite or extend args
     parser = P2rSystem.add_model_specific_args(parent_parser, root_dir)
     hparams = parser.parse_args()
+
+    print(vars(hparams))
     
     p2r_data = loadData(hparams.data_root, hparams.train_div)
 
