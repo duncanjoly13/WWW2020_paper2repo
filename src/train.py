@@ -82,6 +82,7 @@ def loadData(data_root, train_div):
     return p2r_data
     
 if __name__ == '__main__':
+    torch.set_float32_matmul_precision('high')
 
     # use default args given by lightning
     root_dir = os.path.dirname('/content/data')
