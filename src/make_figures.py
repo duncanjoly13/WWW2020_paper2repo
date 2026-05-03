@@ -81,7 +81,7 @@ def plot_optimization_history(study):
     ax.scatter(trial_numbers, values, alpha=0.5, label='Trial Score', color='#4C72B0')
     ax.plot(trial_numbers, best_values, color='#C44E52', linewidth=2, label='Best Value')
     
-    ax.set_title('Optimization History (PMAP@10)')through
+    ax.set_title('Optimization History (PMAP@10)')
     ax.set_xlabel('Trial Number')
     ax.set_ylabel('PMAP@10 Score')
     ax.legend()
