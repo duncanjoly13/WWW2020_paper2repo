@@ -142,7 +142,7 @@ class P2rSystem(LightningModule):
         # aggregate Coverage
         all_indices = torch.cat([x['indices'] for x in self.test_step_outputs])
         unique_repos = torch.unique(all_indices)
-        catalog_size = self.p2r.repoModel.num_embeddings
+        catalog_size = len(self.data['repo_graph_adjlist'])
         coverage = len(unique_repos) / catalog_size
         
         avg_metrics = {}
