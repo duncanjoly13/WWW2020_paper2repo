@@ -135,33 +135,6 @@ class P2rSystem(LightningModule):
         self.test_step_outputs.append(output)
         return output
     
-    def test_end(self, outputs):
-        # flatten all recommended indices from all batches into one set
-        all_recommended_repos = torch.cat([x['recommended_indices'] for x in outputs])
-        unique_recommended_count = len(torch.unique(all_recommended_repos))
-        
-        # total catalog size
-        total_repo_catalog_size = 7516
-        
-        catalog_coverage = unique_recommended_count / total_repo_catalog_size
-        
-        # standard averaging for other metrics
-        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        
-        # create the results dictionary
-        results = OrderedDict([
-            ('avg_test_loss', avg_loss),
-            ('catalog_coverage', torch.tensor(catalog_coverage))
-        ])
-        
-        # add existing metrics
-        for metric_name, val in outputs[0]['metrics']:
-            avg_val = torch.stack([dict(x['metrics'])[metric_name] for x in outputs]).mean()
-            results[f'avg_{metric_name}'] = avg_val
-            
-        print(f"\nFinal Catalog Coverage: {catalog_coverage * 100:.2f}%")
-        return results
-
     def on_test_epoch_end(self):
         if not self.test_step_outputs:
             return
@@ -169,7 +142,8 @@ class P2rSystem(LightningModule):
         # aggregate Coverage
         all_indices = torch.cat([x['indices'] for x in self.test_step_outputs])
         unique_repos = torch.unique(all_indices)
-        coverage = len(unique_repos) / 7516
+        catalog_size = self.p2r.repoModel.num_embeddings
+        coverage = len(unique_repos) / catalog_size
         
         avg_metrics = {}
         metric_keys = self.test_step_outputs[0]['metrics'].keys()
