@@ -108,6 +108,8 @@ if __name__ == '__main__':
     parser.add_argument('--txtcnn_rfilter_num2', default=32, type=int)
     parser.add_argument('--txtcnn_drop_prob', default=0.0, type=float)
 
+    parser.add_argument('--db_path', default='p2r_study.db', type=str)
+
     args = parser.parse_args()
 
     print("Loading dataset into memory...")
@@ -116,7 +118,7 @@ if __name__ == '__main__':
     study = optuna.create_study(
         direction="maximize", 
         study_name="P2R_Hyperparameter_Sweep",
-        storage="sqlite:///p2r_study.db",
+        storage=f"sqlite:///{args.db_path}",
         load_if_exists=True,
         pruner=optuna.pruners.MedianPruner()
     )
