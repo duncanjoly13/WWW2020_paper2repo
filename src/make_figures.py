@@ -19,7 +19,7 @@ plt.rcParams.update({
 
 sns.set_theme(style="whitegrid", rc={"font.family": "serif"})
 
-def plot_baseline_vs_optimized(best_trial):
+def plot_baseline_vs_optimized(best_trial, output_dir):
     metrics = ['Catalog Coverage', 'PMAP@10', 'MRR@10', 'ILD@10']
     
     baseline = [0.0066, 0.3951, 0.4083, 0.9727]
@@ -47,10 +47,10 @@ def plot_baseline_vs_optimized(best_trial):
     ax.bar_label(rects1, padding=3, fmt='%.3f')
     ax.bar_label(rects2, padding=3, fmt='%.3f')
 
-    plt.savefig('fig1_baseline_comparison.pdf')
+    plt.savefig(f'{output_dir}fig1_baseline_comparison.pdf')
     plt.close()
 
-def plot_parameter_importance(study):
+def plot_parameter_importance(study, output_dir):
     importance_dict = optuna.importance.get_param_importances(study)
     
     df = pd.DataFrame({
@@ -65,10 +65,10 @@ def plot_parameter_importance(study):
     ax.set_xlabel('Relative Importance')
     ax.set_ylabel('')
     
-    plt.savefig('fig2_param_importance.pdf')
+    plt.savefig(f'{output_dir}fig2_param_importance.pdf')
     plt.close()
 
-def plot_optimization_history(study):
+def plot_optimization_history(study, output_dir):
     trials = study.trials
     completed_trials = [t for t in trials if t.state == optuna.trial.TrialState.COMPLETE]
     
@@ -86,7 +86,7 @@ def plot_optimization_history(study):
     ax.set_ylabel('PMAP@10 Score')
     ax.legend()
     
-    plt.savefig('fig3_optimization_history.pdf')
+    plt.savefig(f'{output_dir}fig3_optimization_history.pdf')
     plt.close()
 
 if __name__ == '__main__':
@@ -94,6 +94,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description="Generate paper figures from Optuna database.")
     parser.add_argument('--db_path', type=str, default='p2r_study.db', help='Path to the SQLite database file.')
+    parser.add_argument('--output_dir', type=str, default='./', help='Path to directory in which to save output files.')
     args = parser.parse_args()
     
     storage_url = f"sqlite:///{args.db_path}"
@@ -102,9 +103,9 @@ if __name__ == '__main__':
         study = optuna.load_study(study_name="P2R_Hyperparameter_Sweep", storage=storage_url)
         print(f"Loaded study with {len(study.trials)} trials from {args.db_path}")
         
-        plot_parameter_importance(study)
-        plot_optimization_history(study)
-        plot_baseline_vs_optimized(study.best_trial)
+        plot_parameter_importance(study, args.output_dir)
+        plot_optimization_history(study, args.output_dir)
+        plot_baseline_vs_optimized(study.best_trial, args.output_dir)
         
         print("All figures generated successfully.")
     except Exception as e:
