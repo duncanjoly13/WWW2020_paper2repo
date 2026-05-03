@@ -60,7 +60,7 @@ def objective(trial, data, default_args):
     
     hparams.gcn_mid_dim = trial.suggest_categorical("gcn_mid_dim", [128, 256, 512, 1024])
     hparams.gcn_drop_prob = trial.suggest_float("gcn_drop_prob", 0.1, 0.6)
-    hparams.freeze_embeddings = trial.suggest_categorical("freeze_embeddings", [True, False])
+    hparams.freeze_embeddings = True
     
     hparams.top_t = trial.suggest_int("top_t", 5, 20, step=5)
     hparams.warploss_margin = trial.suggest_float("warploss_margin", 0.1, 0.8)
