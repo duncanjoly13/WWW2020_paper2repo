@@ -109,6 +109,7 @@ if __name__ == '__main__':
     parser.add_argument('--txtcnn_drop_prob', default=0.0, type=float)
 
     parser.add_argument('--db_path', default='p2r_study.db', type=str)
+    parser.add_argument('--num_trials', default=30, type=int)
 
     args = parser.parse_args()
 
@@ -124,7 +125,7 @@ if __name__ == '__main__':
     )
     
     print("\nStarting Hyperparameter Sweep...")
-    study.optimize(lambda trial: objective(trial, p2r_data, args), n_trials=30)
+    study.optimize(lambda trial: objective(trial, p2r_data, args), n_trials=args.num_trials)
     
     print("\n" + "="*30)
     print("Optimization Finished!")
