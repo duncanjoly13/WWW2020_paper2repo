@@ -53,7 +53,6 @@ def objective(trial, data, default_args):
     """
     hparams = argparse.Namespace(**vars(default_args))
     
-    # hyperparameter search space ---
     hparams.learning_rate = trial.suggest_float("learning_rate", 1e-4, 5e-3, log=True)
     hparams.max_nb_epochs = trial.suggest_categorical("max_nb_epochs", [4, 8, 16])
     hparams.batch_size = trial.suggest_categorical("batch_size", [32, 64, 128])
