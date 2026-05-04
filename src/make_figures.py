@@ -89,6 +89,26 @@ def plot_optimization_history(study, output_dir):
     plt.savefig(f'{output_dir}fig3_optimization_history.pdf')
     plt.close()
 
+def plot_metrics_progression(study, output_dir):
+    df = study.trials_dataframe()
+    df_clean = df.dropna(subset=['user_attrs_ild', 'user_attrs_coverage']).copy()
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    
+    sns.lineplot(data=df_clean, x='number', y='user_attrs_ild', ax=axes[0], marker='o', color='royalblue')
+    axes[0].set_title('ILD@10 Progression')
+    axes[0].set_xlabel('Trial Number')
+    axes[0].set_ylabel('ILD@10')
+
+    sns.lineplot(data=df_clean, x='number', y='user_attrs_coverage', ax=axes[1], marker='o', color='seagreen')
+    axes[1].set_title('Catalog Coverage Progression')
+    axes[1].set_xlabel('Trial Number')
+    axes[1].set_ylabel('Coverage')
+
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}fig4_metrics_progression.pdf')
+    plt.close()
+
 if __name__ == '__main__':
     import argparse
     
@@ -106,6 +126,7 @@ if __name__ == '__main__':
         plot_parameter_importance(study, args.output_dir)
         plot_optimization_history(study, args.output_dir)
         plot_baseline_vs_optimized(study.best_trial, args.output_dir)
+        plot_metrics_progression(study, args.output_dir)
         
         print("All figures generated successfully.")
     except Exception as e:
